@@ -16,7 +16,7 @@ screenGui.ResetOnSpawn = false
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 160, 0, 50)
 button.Position = UDim2.new(0.5, -80, 0.15, 0)
-button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Text = "BlackHole OFF"
 button.Font = Enum.Font.GothamBold
@@ -33,8 +33,139 @@ buttonCorner.Parent = button
 local configBtn = Instance.new("TextButton")
 configBtn.Size = UDim2.new(0, 25, 0, 25)
 configBtn.Position = UDim2.new(1, -28, 0, 3)
-configBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 100)
+configBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 configBtn.Text = "⚙️"
+configBtn.TextColor3 = Color3.fromRGB(255,255,255)
+configBtn.Font = Enum.Font.GothamBold
+configBtn.TextSize = 14
+configBtn.Parent = button
+
+local configCorner = Instance.new("UICorner")
+configCorner.CornerRadius = UDim.new(0, 8)
+configCorner.Parent = configBtn
+
+-- Painel moderno (Config)
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0, 220, 0, 120)
+panel.Position = UDim2.new(0.5, -110, 0.32, 0)
+panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+panel.Visible = false
+panel.Active = true
+panel.Draggable = true
+panel.Parent = screenGui
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 12)
+panelCorner.Parent = panel
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundTransparency = 1
+title.Text = "🎯 Escolher Alvo"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = panel
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0.9, 0, 0, 30)
+textBox.Position = UDim2.new(0.05, 0, 0.4, 0)
+textBox.PlaceholderText = "Digite nome ou parte..."
+textBox.Text = ""
+textBox.Font = Enum.Font.Gotham
+textBox.TextSize = 14
+textBox.TextColor3 = Color3.fromRGB(255,255,255)
+textBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+textBox.Parent = panel
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 8)
+boxCorner.Parent = textBox
+
+local confirm = Instance.new("TextButton")
+confirm.Size = UDim2.new(0.9, 0, 0, 28)
+confirm.Position = UDim2.new(0.05, 0, 0.75, 0)
+confirm.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+confirm.Text = "Confirmar"
+confirm.Font = Enum.Font.GothamBold
+confirm.TextColor3 = Color3.fromRGB(255,255,255)
+confirm.TextSize = 14
+confirm.Parent = panel
+
+local confirmCorner = Instance.new("UICorner")
+confirmCorner.CornerRadius = UDim.new(0, 8)
+confirmCorner.Parent = confirm
+
+-- Função para procurar player por nome parcial ou DisplayName
+local function findTarget(namePart)
+    namePart = namePart:lower()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local username = p.Name:lower()
+            local display = p.DisplayName:lower()
+            if string.find(username, namePart) or string.find(display, namePart) then
+                return p
+            end
+        end
+    end
+    return nil
+end
+
+-- Black Hole principal
+local function startBlackHole()
+    task.spawn(function()
+        while _G.blackHoleRockets do
+            local target = _G.blackHoleTarget
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = target.Character.HumanoidRootPart
+                for _, obj in ipairs(Workspace:GetChildren()) do
+                    if obj:IsA("Part") or obj:IsA("Model") then
+                        if string.find(obj.Name:lower(), "rocket") or string.find(obj.Name:lower(), "bomb") then
+                            if obj:IsA("Model") and obj.PrimaryPart then
+                                obj:SetPrimaryPartCFrame(CFrame.new(targetRoot.Position))
+                            elseif obj:IsA("BasePart") then
+                                obj.CFrame = CFrame.new(targetRoot.Position)
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(0) -- velocidade máxima
+        end
+    end)
+end
+
+-- Ativar/Desativar BlackHole
+button.MouseButton1Click:Connect(function()
+    _G.blackHoleRockets = not _G.blackHoleRockets
+    if _G.blackHoleRockets then
+        button.Text = "BlackHole ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        startBlackHole()
+    else
+        button.Text = "BlackHole OFF"
+        button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end
+end)
+
+-- Abrir/fechar painel
+configBtn.MouseButton1Click:Connect(function()
+    panel.Visible = not panel.Visible
+end)
+
+-- Confirmar alvo
+confirm.MouseButton1Click:Connect(function()
+    local name = textBox.Text
+    local target = findTarget(name)
+    if target then
+        _G.blackHoleTarget = target
+        title.Text = "🎯 Alvo: "..target.DisplayName
+        panel.BackgroundColor3 = Color3.fromRGB(30, 60, 30)
+    else
+        title.Text = "❌ Nenhum player encontrado!"
+        panel.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+    end
+end)configBtn.Text = "⚙️"
 configBtn.TextColor3 = Color3.fromRGB(255,255,255)
 configBtn.Font = Enum.Font.GothamBold
 configBtn.TextSize = 14
