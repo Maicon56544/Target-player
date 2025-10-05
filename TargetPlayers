@@ -1,0 +1,189 @@
+--// Variáveis globais
+_G.blackHoleRockets = false
+_G.blackHoleTarget = nil -- alvo escolhido
+
+--// Serviços
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+
+--// GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- Botão principal (ON/OFF)
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 50)
+button.Position = UDim2.new(0.5, -80, 0.15, 0)
+button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundTransparency = 0.2
+button.Text = "Target Players"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 18
+button.Parent = screenGui
+button.Active = true
+button.Draggable = true
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 12)
+buttonCorner.Parent = button
+
+-- Botão menor dentro (config)
+local configBtn = Instance.new("TextButton")
+configBtn.Size = UDim2.new(0, 25, 0, 25)
+configBtn.Position = UDim2.new(1, -28, 0, 3)
+configBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+configBtn.BackgroundTransparency = 1
+configBtn.Text = "⚙️"
+configBtn.TextColor3 = Color3.fromRGB(255,255,255)
+configBtn.Font = Enum.Font.GothamBold
+configBtn.TextSize = 14
+configBtn.Parent = button
+
+local configCorner = Instance.new("UICorner")
+configCorner.CornerRadius = UDim.new(0, 8)
+configCorner.Parent = configBtn
+
+-- Painel moderno (Config)
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0, 220, 0, 120)
+panel.Position = UDim2.new(0.5, -110, 0.32, 0)
+panel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+panel.BackgroundTransparency = 0.2
+panel.Visible = false
+panel.Active = true
+panel.Draggable = true
+panel.Parent = screenGui
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 12)
+panelCorner.Parent = panel
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundTransparency = 1
+title.Text = "Player Name"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = panel
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(0.9, 0, 0, 30)
+textBox.Position = UDim2.new(0.05, 0, 0.4, 0)
+textBox.PlaceholderText = "Digite nome ou parte..."
+textBox.Text = ""
+textBox.Font = Enum.Font.Gotham
+textBox.TextSize = 14
+textBox.TextColor3 = Color3.fromRGB(255,255,255)
+textBox.BackgroundColor3 = Color3.fromRGB(0,0,0)
+textBox.BackgroundTransparency = 0.2
+textBox.Parent = panel
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 8)
+boxCorner.Parent = textBox
+
+local confirm = Instance.new("TextButton")
+confirm.Size = UDim2.new(0.9, 0, 0, 28)
+confirm.Position = UDim2.new(0.05, 0, 0.75, 0)
+confirm.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+confirm.BackgroundTransparency = 0.2
+confirm.Text = "Confirm"
+confirm.Font = Enum.Font.GothamBold
+confirm.TextColor3 = Color3.fromRGB(0, 0 ,150)
+confirm.TextSize = 14
+confirm.Parent = panel
+
+local confirmCorner = Instance.new("UICorner")
+confirmCorner.CornerRadius = UDim.new(0, 8)
+confirmCorner.Parent = confirm
+
+-- Função para procurar player por nome parcial ou DisplayName
+local function findTarget(namePart)
+    namePart = namePart:lower()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local username = p.Name:lower()
+            local display = p.DisplayName:lower()
+            if string.find(username, namePart) or string.find(display, namePart) then
+                return p
+            end
+        end
+    end
+    return nil
+end
+
+-- Função recursiva para encontrar e teleportar todas bombas (rocket, bomb, grenade, etc)
+local bombKeywords = {"rocket", "bomb", "grenade", "explosive", "missile", "tnt"}
+local function isBomb(obj)
+    local name = obj.Name:lower()
+    for _, key in ipairs(bombKeywords) do
+        if string.find(name, key) then
+            return true
+        end
+    end
+    return false
+end
+
+local function teleportBombsToTarget(parent, targetCFrame)
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj:IsA("BasePart") and isBomb(obj) then
+            obj.CFrame = targetCFrame
+        elseif obj:IsA("Model") or obj:IsA("Folder") then
+            teleportBombsToTarget(obj, targetCFrame)
+        end
+    end
+end
+
+-- Black Hole principal
+local function startBlackHole()
+    task.spawn(function()
+        while _G.blackHoleRockets do
+            local target = _G.blackHoleTarget
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRoot = target.Character.HumanoidRootPart
+                teleportBombsToTarget(Workspace, CFrame.new(targetRoot.Position))
+            end
+            task.wait(0) -- velocidade máxima
+        end
+    end)
+end
+
+-- Ativar/Desativar BlackHole
+button.MouseButton1Click:Connect(function()
+    _G.blackHoleRockets = not _G.blackHoleRockets
+    if _G.blackHoleRockets then
+        button.Text = "Target Players"
+        button.TextColor3 = Color3.fromRGB(0, 0, 150)
+        button.BackgroundTransparency = 0.2
+        startBlackHole()
+    else
+        button.Text = "Target Players"
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.BackgroundTransparency = 0.2
+    end
+end)
+
+-- Abrir/fechar painel
+configBtn.MouseButton1Click:Connect(function()
+    panel.Visible = not panel.Visible
+end)
+
+-- Confirmar alvo
+confirm.MouseButton1Click:Connect(function()
+    local name = textBox.Text
+    local target = findTarget(name)
+    if target then
+        _G.blackHoleTarget = target
+        title.Text = ": "..target.DisplayName
+        panel.BackgroundColor3 = Color3.fromRGB(30, 60, 30)
+        panel.BackgroundTransparency = 0.2
+    else
+        title.Text = "Nenhum player encontrado!"
+        panel.BackgroundColor3 = Color3.fromRGB(60, 30, 30)
+        panel.BackgroundTransparency = 0.2
+    end
+end)
